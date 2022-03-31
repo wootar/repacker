@@ -1,0 +1,79 @@
+#!/usr/bin/lua
+
+-- For extracting and repacking
+local parts = {}
+parts[1] = {}
+parts[1].name = "mbr"
+parts[1].firstdecimal = 0
+parts[1].decimal = 262144
+parts[2] = {}
+parts[2].name = "ext_kernel"
+parts[2].firstdecimal = 262145
+parts[2].decimal = 17301504
+parts[3] = {}
+parts[3].name = "squashfs"
+parts[3].firstdecimal = 17301505
+parts[3].decimal = 126353408
+-- Note this example is for the latest version of OpenWRT
+
+function repack(outfile)
+    -- Open outfile
+    openout = io.open(outfile,"w+");
+    
+    -- For every part, we assume that part is extracted or edited and copied to the same name
+    for i,v in pairs(parts) do
+        -- Open the part, write it to the outfile and repeat until all parts are done.
+        io.stdout:write("Writing from "..v.name.." to "..outfile..":")
+        local out = io.open(v.name,"r")
+        openout:write(out:read("a"))
+        out:close()
+        print(" DONE!")
+    end
+    openout:flush()
+    openout:close()
+    os.exit(0)
+end
+
+function unpack(target)
+    -- Open the firmware then extract the part and clean up everything
+    for i,v in pairs(parts) do
+        io.stdout:write("Writing to "..v.name.." from "..target..":")
+        local hd = io.open(target,"r")
+        local a = hd:read("a"):sub(v.firstdecimal,v.decimal)
+        local out = io.open(v.name,"w+")
+        out:write(a)
+        out:flush()
+        out:close()
+        a = nil
+        hd:close()
+        hd = nil
+        out = nil
+        print(" DONE!")
+    end
+    target = nil
+    os.exit(0)
+end
+
+if arg[1] == nil then
+    print("Usage (unpack): "..arg[0].." unpack (firmware file)")
+    print("Usage (repack): "..arg[0].." repack (out file)")
+    os.exit(1)
+elseif arg[1]:lower() == "unpack" then
+    if arg[2] == nil then
+        print("Usage (unpack): "..arg[0].." unpack (firmware file)")
+        print("Usage (repack): "..arg[0].." repack (out file)")
+        os.exit(1)
+    end
+    unpack(arg[2])
+elseif arg[1]:lower() == "repack" then
+    if arg[2] == nil then
+        print("Usage (unpack): "..arg[0].." unpack (firmware file)")
+        print("Usage (repack): "..arg[0].." repack (out file)")
+        os.exit(1)
+    end
+    repack(arg[2])
+else
+    print("Usage (unpack): "..arg[0].." unpack (firmware file)")
+    print("Usage (repack): "..arg[0].." repack (out file)")
+    os.exit(1)
+end
