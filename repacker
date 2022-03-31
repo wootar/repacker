@@ -2,19 +2,20 @@
 
 -- For extracting and repacking
 local parts = {}
+
 parts[1] = {}
-parts[1].name = "mbr"
-parts[1].firstdecimal = 0
+parts[1].name = "metadata"
+parts[1].startdecimal = 0
 parts[1].decimal = 262144
 parts[2] = {}
 parts[2].name = "ext_kernel"
-parts[2].firstdecimal = 262145
+parts[2].startdecimal = 262145
 parts[2].decimal = 17301504
 parts[3] = {}
 parts[3].name = "squashfs"
-parts[3].firstdecimal = 17301505
+parts[3].startdecimal = 17301505
 parts[3].decimal = 126353408
--- Note this example is for the latest version of OpenWRT
+--
 
 function repack(outfile)
     -- Open outfile
@@ -39,13 +40,19 @@ function unpack(target)
     for i,v in pairs(parts) do
         io.stdout:write("Writing to "..v.name.." from "..target..":")
         local hd = io.open(target,"r")
-        local a = hd:read("a"):sub(v.firstdecimal,v.decimal)
+        if v.firstdecimal == 0 then
+            local combo = "l"..tostring(v.decimal)
+            a = hd:read(combo)
+            combo = nil
+        else
+            a = hd:read("a"):sub(v.startdecimal,v.decimal)
+        end
         local out = io.open(v.name,"w+")
         out:write(a)
         out:flush()
         out:close()
-        a = nil
         hd:close()
+        a = nil
         hd = nil
         out = nil
         print(" DONE!")
